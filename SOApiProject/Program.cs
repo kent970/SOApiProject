@@ -1,18 +1,17 @@
-using Microsoft.AspNetCore.Razor.TagHelpers;
-using MongoDB.Driver;
-using MongoDB.Entities;
+
 using SOApiProject.Data;
-using SOApiProject.Models;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
+//todo napewno trasient i singleton?? a nie scoped?
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection("MongoDB"));
-builder.Services.AddSingleton<MongoService>();
+builder.Services.AddSingleton<IMongoService,MongoService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
-
+builder.Services.AddTransient<DatabaseInitializer>();
 var app = builder.Build();
 
 
@@ -25,6 +24,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapControllers();
 
-
-
+var initializer = app.Services.GetRequiredService<DatabaseInitializer>();
+await initializer.InitDb();
+    
 app.Run();
