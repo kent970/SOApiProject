@@ -1,0 +1,19 @@
+services:
+  mongodb:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=mongopw
+    ports:
+      - "27017:27017"
+    volumes:
+      - /var/lib/mongodb/data:/data/db
+
+  dotnetapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80" # Assuming your .NET app listens on port 80 inside the container
+    depends_on:
+      - mongodb
