@@ -18,7 +18,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
-builder.Services.AddTransient<IDatabaseInitializer,DatabaseInitializer>();
+builder.Services.AddScoped<IDatabaseInitializer,DatabaseInitializer>();
+builder.Services.AddHttpClient<IDatabaseInitializer, DatabaseInitializer>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["BaseUrl"]);
+});
 
 var app = builder.Build();
 

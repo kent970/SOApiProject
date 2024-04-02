@@ -26,6 +26,7 @@ namespace SOApiTests.Integration
         [Fact]
         public async Task GetTagsShare_ReturnsExpectedResult()
         {
+            //Todo dokoncyc test z pagedlistmoodel
             // Arrange
             var expectedTags = new List<TagModel>
             {
@@ -33,7 +34,15 @@ namespace SOApiTests.Integration
                 new TagModel { Name = "Java", Count = 50 }
             };
 
-            _mongoService.GetTagsAsync().Returns(expectedTags);
+            _mongoService.GetSortedTags("Name",true,100).Returns(new List<PagedTagModel>
+            {
+                new PagedTagModel
+                {
+                    Content = expectedTags,
+                    PageNumber = 1
+                },
+                new PagedTagModel()
+            });
 
             // Act
             var result =  _controller.GetTagsShare().Result.Value;

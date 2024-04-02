@@ -29,17 +29,8 @@ namespace SOApiProject.Controllers
         [ProducesResponseType(200, Type = typeof(Dictionary<string, double>))]
         public async Task<ActionResult<Dictionary<string, double>>> GetTagsShare()
         {
-            var result = new Dictionary<string, double>();
-
-            var tags = await _mongoService.GetTagsAsync();
-            long totalTags = tags.Sum(tag => tag.Count);
-
-            foreach (var tag in tags)
-            {
-                double share = (double)tag.Count * 100 / totalTags;
-                result.Add(tag.Name, share);
-            }
-
+            var result = await _mongoService.GetTagsShare();
+            
             return Ok(result);
         }
 
@@ -59,25 +50,11 @@ namespace SOApiProject.Controllers
             if (!sortBy.Equals("Name") && !sortBy.Equals("Count"))
                 return BadRequest("Sorting can only be done by Name or Count");
 
-            var tagModels = await _mongoService.GetTagsAsync(sortBy, ascending);
-            
-            if (!tagModels.Any())
+            var result = _mongoService.GetSortedTags(sortBy, ascending, pageSize).Result;
+
+            if (!result.Any())
                 return NotFound("No tags found");
             
-            var result = new List<PagedTagModel>();
-
-            var pageCount = (int)Math.Ceiling((double)tagModels.Count / pageSize);
-
-            for (int i = 0; i < pageCount; i++)
-            {
-                var page = tagModels.Skip(i * pageSize).Take(pageSize).ToList();
-                result.Add(new PagedTagModel
-                {
-                    Content = page,
-                    PageNumber = i + 1
-                });
-            }
-
             return Ok(result);
         }
 

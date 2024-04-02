@@ -25,7 +25,7 @@ namespace SOApiTests.Unit
             _logger = Substitute.For<ILogger<IDatabaseInitializer>>();
             _configuration = Substitute.For<IConfiguration>();
             _httpClientFactory = Substitute.For<IHttpClientFactory>();
-            _databaseInitializer = new DatabaseInitializer(_httpClientFactory, _configuration, _mongoService, _logger);
+            _databaseInitializer = new DatabaseInitializer(new HttpClient(),_mongoService,  _logger);
         }
 
         [Fact]

@@ -54,7 +54,7 @@ namespace SOApiTests.Unit
             var mongoService = new MongoService(_options, _logger);
 
             // Act
-            var result = await mongoService.GetTagsAsync();
+            var result = await mongoService.GetSortedTags("",false,2);
 
             // Assert
             //TODO naprawic test
@@ -73,7 +73,7 @@ namespace SOApiTests.Unit
             var mongoService = new MongoService(_options, _logger);
 
             // Act
-            var result = await mongoService.GetTagsAsync();
+            var result = await mongoService.GetSortedTags("Name",true,90);
 
             // Assert
             result.Should().BeEmpty().And.BeOfType<List<TagModel>>();
