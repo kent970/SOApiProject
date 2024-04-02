@@ -2,15 +2,20 @@
 using SOApiProject.Models;
 
 namespace SOApiProject.Data;
-public class DatabaseInitializer
+
+public interface IDatabaseInitializer
+{
+    Task InitDb(int tagsAmount = 1000);
+}
+public class DatabaseInitializer : IDatabaseInitializer
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly IMongoService _mongoService;
-    private readonly ILogger<DatabaseInitializer> _logger;
+    private readonly ILogger<IDatabaseInitializer> _logger;
 
     public DatabaseInitializer(IHttpClientFactory httpClientFactory, IConfiguration configuration,
-        IMongoService mongoService, ILogger<DatabaseInitializer> logger)
+        IMongoService mongoService, ILogger<IDatabaseInitializer> logger)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
@@ -20,10 +25,17 @@ public class DatabaseInitializer
 
     public async Task InitDb(int tagsAmount = 1000)
     {
+        
+        var collectionSize = _mongoService.GetCollectionSize().Result;
+        var missingTagsCount = tagsAmount - collectionSize;
+        
+        if(missingTagsCount <= 0)
+            return;
+            
         try
         {
-            int pageCount = tagsAmount / 100;
-
+            int pageCount = (int)Math.Ceiling((double)missingTagsCount / 100);
+            
             var tagModels = new List<TagModel>();
 
             var httpClient = _httpClientFactory.CreateClient("StackOverflowApiClient");
@@ -33,7 +45,7 @@ public class DatabaseInitializer
 
             for (int i = 1; i <= pageCount; i++)
             {
-                string apiUrl = $"{apiBaseUrl}?page=1&pagesize=100&order=desc&sort=popular&site=stackoverflow";
+                string apiUrl = $"{apiBaseUrl}?page={i}&pagesize=100&order=desc&sort=popular&site=stackoverflow";
 
                 var response = await httpClient.GetAsync(apiUrl);
 

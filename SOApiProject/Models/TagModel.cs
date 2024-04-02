@@ -8,13 +8,10 @@ namespace SOApiProject.Models;
 
 public class TagModel : Entity
 {
-
-    
     [BsonElement("Name")]
     [JsonPropertyName("name")]
     public string Name { get; set; }
-
-
+    
     [BsonElement("HasSynonyms")]
     [JsonPropertyName("has_synonyms")]
     public bool HasSynonyms { get; set; }
@@ -34,9 +31,7 @@ public class TagModel : Entity
 
 public class Response
 {
-    //TODO moze zmienc na ienumerable
     public List<TagModel> Items { get; set; }
-    
 }
 
 public class PagedTagModel
