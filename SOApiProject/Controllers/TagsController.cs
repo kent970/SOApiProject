@@ -70,8 +70,9 @@ namespace SOApiProject.Controllers
             if (tagsAmount < 1000)
                 return BadRequest("Tags amount cannot be less than 1000");
 
-            await _mongoService.DropCollection();
-            await _databaseInitializer.InitDb();
+            _mongoService.DropCollection();
+            
+            await _mongoService.FetchDataToDatabase();
 
             return Ok();
         }

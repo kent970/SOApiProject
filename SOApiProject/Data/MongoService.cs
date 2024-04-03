@@ -7,11 +7,12 @@ namespace SOApiProject.Data;
 
 public interface IMongoService
 {
-    Task DropCollection();
     Task AddToTagModelsAsync(List<TagModel> tagModels);
     Task<long> GetCollectionSize();
-    Task<Dictionary<string,double>> GetTagsShare();
-    Task<List<PagedTagModel>> GetSortedTags(string sortBy,bool ascending,int pageSize);
+    Task<Dictionary<string, double>> GetTagsShare();
+    Task<List<PagedTagModel>> GetSortedTags(string sortBy, bool ascending, int pageSize);
+    void DropCollection();
+    Task FetchDataToDatabase(int tagsAmount = 1000);
 }
 
 public class MongoService : IMongoService
@@ -20,11 +21,14 @@ public class MongoService : IMongoService
     private readonly IMongoCollection<TagModel> _collection;
     private readonly IOptions<MongoDBSettings> _mongoDbSettings;
     private readonly ILogger<MongoService> _logger;
+    private readonly IDatabaseInitializer _databaseInitializer;
 
-    public MongoService(IOptions<MongoDBSettings> mongoDbSettings, ILogger<MongoService> logger)
+    public MongoService(IOptions<MongoDBSettings> mongoDbSettings, ILogger<MongoService> logger,
+        IDatabaseInitializer databaseInitializer)
     {
         _mongoDbSettings = mongoDbSettings;
         _logger = logger;
+        _databaseInitializer = databaseInitializer;
         var client = new MongoClient(_mongoDbSettings.Value.ConnectionURI);
         _database = client.GetDatabase(_mongoDbSettings.Value.DatabaseName);
         _collection = _database.GetCollection<TagModel>(_mongoDbSettings.Value.CollectionName);
@@ -32,15 +36,15 @@ public class MongoService : IMongoService
 
     public async Task<List<PagedTagModel>> GetSortedTags(string sortBy, bool ascending, int pageSize)
     {
-        var tagModels = await GetTagsAsync(sortBy ,ascending);
-            
+        var tags = await GetTagsAsync(sortBy, ascending);
+
         var result = new List<PagedTagModel>();
 
-        var pageCount = (int)Math.Ceiling((double)tagModels.Count / pageSize);
+        var pageCount = (int)Math.Ceiling((double)tags.Count / pageSize);
 
         for (int i = 0; i < pageCount; i++)
         {
-            var page = tagModels.Skip(i * pageSize).Take(pageSize).ToList();
+            var page = tags.Skip(i * pageSize).Take(pageSize).ToList();
             result.Add(new PagedTagModel
             {
                 Content = page,
@@ -50,11 +54,11 @@ public class MongoService : IMongoService
 
         return result;
     }
-    
+
     public async Task<Dictionary<string, double>> GetTagsShare()
     {
         var result = new Dictionary<string, double>();
-        
+
         var tags = await GetTagsAsync();
         long totalTags = tags.Sum(tag => tag.Count);
 
@@ -67,16 +71,17 @@ public class MongoService : IMongoService
         return result;
     }
 
-    public async Task DropCollection()
+    public void DropCollection()
     {
         try
         {
-            await _database.DropCollectionAsync(_mongoDbSettings.Value.CollectionName);
+            _database.DropCollectionAsync(_mongoDbSettings.Value.CollectionName);
             _logger.LogInformation($"Successfully dropped {_mongoDbSettings.Value.CollectionName} collection");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"An error occurred while dropping {_mongoDbSettings.Value.CollectionName} collection.");
+            _logger.LogError(ex,
+                $"An error occurred while dropping {_mongoDbSettings.Value.CollectionName} collection.");
             throw;
         }
     }
@@ -86,7 +91,7 @@ public class MongoService : IMongoService
         var result = await _collection.CountDocumentsAsync(new BsonDocument());
         return result;
     }
-    
+
     public async Task AddToTagModelsAsync(List<TagModel> tagModels)
     {
         try
@@ -109,6 +114,19 @@ public class MongoService : IMongoService
             throw;
         }
     }
+
+    public async Task FetchDataToDatabase(int tagsAmount = 1000)
+    {
+        var currentCollectionSize = GetCollectionSize().Result;
+        var missingTagsCount = tagsAmount - currentCollectionSize;
+
+        if (missingTagsCount <= 0)
+            return;
+
+        var tags = _databaseInitializer.FetchTagsFromApi((int)missingTagsCount).Result;
+        await AddToTagModelsAsync(tags);
+    }
+
     private async Task<List<TagModel>> GetTagsAsync(string sortBy = "Name", bool ascending = true)
     {
         try

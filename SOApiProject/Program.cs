@@ -10,16 +10,16 @@ builder.Services.AddLogging(
         builder.AddDebug();
     }
 );
-
+builder.Services.AddHttpClient();
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection("MongoDB"));
-
+builder.Services.AddScoped<IApiService, ApiService>();
 builder.Services.AddScoped<IMongoService, MongoService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<IDatabaseInitializer,DatabaseInitializer>();
-builder.Services.AddHttpClient<IDatabaseInitializer, DatabaseInitializer>(client =>
+builder.Services.AddHttpClient<IApiService,ApiService>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"]);
 });
@@ -36,7 +36,7 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 using var scope = app.Services.CreateScope();
-var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
-await initializer.InitDb();
+var initializer = scope.ServiceProvider.GetRequiredService<IMongoService>();
+await initializer.FetchDataToDatabase();
 
 app.Run();
